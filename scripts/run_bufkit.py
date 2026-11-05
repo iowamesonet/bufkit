@@ -15,10 +15,7 @@ from pyiem.util import exponential_backoff, logger, utc
 from tqdm import tqdm
 
 LOG = logger()
-SERVICES = [
-    "https://nomads.ncep.noaa.gov/pub/data/nccf/com",
-    "https://ftpprd.ncep.noaa.gov/data/nccf/com",
-]
+SERVICE = "https://nomads.ncep.noaa.gov/pub/data/nccf/com"
 TEMPBASE = "/tmp"
 
 
@@ -54,7 +51,7 @@ def download_bufrsnd(tmpdir, model, valid, extra=""):
         # Flip/flop between the two services
         p1 = f"{valid:%H}/" if model in ("gfs", "rrfs") else ""
         url = (
-            f"{SERVICES[attempt % 2]}/{model1}/prod/{model1}.{valid:%Y%m%d}/"
+            f"{SERVICE}/{model1}/prod/{model1}.{valid:%Y%m%d}/"
             f"{p1}{'atmos/' if model1 == 'gfs' else ''}"
             f"{dextra}{model1}.t{valid:%H}z."
             f"{'tm00.' if model1 == 'nam' else ''}bufrsnd{extra}.tar{crazy}.gz"
@@ -64,7 +61,7 @@ def download_bufrsnd(tmpdir, model, valid, extra=""):
         tmt = 5 if attempt < 3 else 60
         req = exponential_backoff(requests.get, url, timeout=tmt, stream=True)
         if req is None or req.status_code != 200:
-            LOG.info(
+            (LOG.info if attempt < 59 else LOG.warning)(
                 "download failed, sleeping 120s, response_code: %s",
                 None if req is None else req.status_code,
             )
